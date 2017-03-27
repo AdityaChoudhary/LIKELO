@@ -1,0 +1,1 @@
+document.getElementsByName('email')[0].value = 'john@apple.com';
