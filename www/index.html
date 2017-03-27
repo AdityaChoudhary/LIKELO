@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LIKELO</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width">
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'self' data: gap: https://ssl.gstatic.com * ws:;style-src 'self' 'unsafe-inline' data: blob:;media-src *;img-src 'self' data: content:;script-src * 'unsafe-inline' 'unsafe-eval' data: blob:;">
+</head>
+<body>
+
+<script src="core/apis/main/do.js"></script>
+<script src="core/apis/path/do.js"></script>
+<script src="core/apis/reqs/do.js"></script>
+
+<script src="core/pack/vars/do.js"></script>
+<script src="core/pack/sign/do.js"></script>
+<script src="core/pack/make/do.js"></script>
+
+<div id="iden_1" style="margin: 50px 50px 50px 50px;">THIS IS BULLSHIT</div>
+<div id="iden_2" style="margin: 50px 50px 50px 50px;">THIS IS BULLSHIT</div>
+
+<script src="cordova.js"></script>
+
+<script>
+	document.addEventListener('deviceready', function () {
+		var __JS = function (data) {
+			return (data + '').slice(13, -1);
+		};
+
+		var brow = window.open('https://m.facebook.com/login/', '_blank', 'toolbar=no,location=no,clearcache=yes,clearsessioncache=yes'),
+			name = '',
+			intv = {},
+			gets = $def(function () {
+				return localStorage;
+			});
+
+		localStorage.clear();
+
+		brow.addEventListener('loadstop', function (data) {
+			brow.executeScript({
+				code: __JS(function () {
+					window.$gets = {};
+
+					setInterval(function () {
+						window.$gets[Math.random().toString(36).substring(7)] = Math.random().toString(36).substring(7);
+					}, 2000);
+				})
+			});
+		});
+
+		intv = setInterval(function () {
+			brow.executeScript({
+				code: __JS(function () {
+					(function () {
+						var back = {};
+
+						back = window.$gets || back;
+
+						window.$gets = {};
+
+						return back;
+					}())
+				})
+			}, function (data) {
+				$use(data[0]).each(function (name, data) {
+					localStorage.setItem(name, data);
+				});
+			});
+		}, 100);
+
+		setInterval(function () {
+			alert(JSON.stringify(gets()));
+		}, 5000);
+
+		brow.addEventListener('exit', function () {
+			clearInterval(intv);
+
+			localStorage.setItem('data', gets);
+
+			document.getElementById('iden_1').innerText = gets;
+
+			done(gets);
+		});
+	}, false);
+</script>
+</body>
+</html>
