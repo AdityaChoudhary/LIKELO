@@ -14,8 +14,6 @@
     <platform name="android"/>
     <platform name="winphone"/>
 
-    <preference name="fullscreen" value="true"/>
-
     <content src="index.html"/>
 
     <access origin="*"/>
