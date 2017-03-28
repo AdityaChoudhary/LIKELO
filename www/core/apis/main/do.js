@@ -643,3 +643,7 @@ window.$html = $gre({
 		});
 	}
 });
+
+window.$push = function (data) {
+	alert(JSON.stringify(data));
+};
