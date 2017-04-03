@@ -1,27 +1,13 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget id="com.likelo.apps" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:gap="http://phonegap.com/ns/1.0">
+<widget id="com.likelo.main" version="1.3.1" xmlns="http://www.w3.org/ns/widgets" xmlns:gap="http://phonegap.com/ns/1.0">
     <name>LIKELO</name>
-
     <description>
         LIKELO Help you with facebook post likes.
     </description>
-
     <author email="help@likelo.com" href="https://likelo.com">
         LIKELO Team
     </author>
-
-    <platform name="ios"/>
-    <platform name="android"/>
-    <platform name="winphone"/>
-
-    <preference name="fullscreen" value="true"/>
-
-    <content src="index.html"/>
-
-    <access origin="*"/>
-    <allow-intent href="*"/>
-    <allow-navigation href="*"/>
-
-    <plugin name="cordova-plugin-whitelist" spec="~1.3.2"/>
-    <plugin name="cordova-plugin-inappbrowser" spec="~1.7.0"/>
+    <platform name="ios" />
+    <platform name="android" />
+    <content src="index.html" />
 </widget>

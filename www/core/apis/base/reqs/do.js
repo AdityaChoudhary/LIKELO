@@ -57,38 +57,49 @@ window.$reqs = $gre({
 		head_deco: function (data) {
 			var back = {};
 
-			$use($char(data).tear('\r\n').$).each(function (curr, data) {
+			$use($char(data).tear('\n').$).each(function (curr, data) {
 				data = $char(data).tear(': ').$;
 
 				$use(data[1]).type('nope').fail(function () {
-					back[data[0]] = data[1];
+					$when($turn(data[0]).lc().$).same({
+						'set-cookie': function () {
+							back[data[0]] = $use($def(back[data[0]], [])).prop(data[1]).$;
+						}
+					}).fail(function () {
+						back[data[0]] = data[1];
+					});
 				});
 			});
 
 			return back;
 		},
 		take: function (data) {
-			var back = {
-				code: data.code,
-				head: {},
-				sess: {}
-			};
+			var head = data.head,
+				sess = $def(head['set-cookie'], {}),
+				back = {
+					code: data.code,
+					head: head,
+					sess: {}
+				};
 
-			$use(data.head).each(function (name, data) {
-				name = $turn(name).lc().$;
+			$use(sess).each(function (curr, data) {
+				$regx('^(.*?)=(.*?);').data(data).done(function (data) {
+					$use(data).move(0).done(function (sess) {
+						var name = '',
+							data = '';
 
-				back.head[name] = data;
+						$use(sess).move(1).done(function (char) {
+							name = char;
+						});
 
-				$use(name).same('set-cookie').done(function () {
-					data = $use(data).turn('(path|domain|expires|Max-Age)=(.*?);', '').$;
+						$use(sess).move(2).done(function (char) {
+							data = char;
+						});
 
-					$regx('([a-zA-Z0-9_-]*)=(.*?);').data(data).done(function (data) {
-						$use(data).each(function (curr, data) {
-							$use(data[2]).same('deleted').fail(function () {
-								back.sess[data[1]] = data[2];
-							}).done(function () {
-								back.sess[data[1]] = null;
-							});
+						$use(data).same('deleted').fail(function () {
+							back.sess[name] = data;
+						}).done(function () {
+							back.sess[name] = null;
 						});
 					});
 				});
@@ -98,65 +109,35 @@ window.$reqs = $gre({
 		},
 		core: function (data) {
 			var back = {
-				host: data.host,
-				port: data.port,
-				path: data.path,
-				send: '',
-				headers: {}
+				type: 'GET',
+				head: {},
+				body: ''
 			};
-
-			$use(data.time).same(0).fail(function () {
-				back.timeout = data.time;
-			});
-
-			$use(data.auth).same('').fail(function () {
-				back.auth = data.auth;
-			});
-
-			$use(data.from).same('').fail(function () {
-				back.localAddress = data.from;
-
-				$use(data.from).find(':').fail(function () {
-					back.family = '4';
-				}).done(function () {
-					back.family = '6';
-				});
-			});
 
 			$when(data.type).same({
 				'gets': function () {
 					/* ---------------------------------------------------------------------------------------------- */
 
-					back.method = 'GET';
+					back.type = 'GET';
 
 					/* ---------------------------------------------------------------------------------------------- */
 
-					var quer = $path($use(data.args).ride(data.data).$).form('enco').$;
-
-					$use(quer).size().done(function () {
-						back.path = back.path + '?' + quer;
-					});
+					back.body = $path($use(data.args).ride(data.data).$).form('enco').$;
 
 					/* ---------------------------------------------------------------------------------------------- */
 				},
 				'post': function () {
 					/* ---------------------------------------------------------------------------------------------- */
 
-					back.method = 'POST';
+					back.type = 'POST';
 
 					/* ---------------------------------------------------------------------------------------------- */
 
-					$use(data.quer).size().done(function () {
-						back.path = back.path + '?' + data.quer;
-					});
+					back.body = $path(data.data).form('enco').$;
 
 					/* ---------------------------------------------------------------------------------------------- */
 
-					back.send = $path(data.data).form('enco').$;
-
-					/* ---------------------------------------------------------------------------------------------- */
-
-					back.headers = $use(back.headers).ride({
+					back.head = $use(back.head).ride({
 						'content-type': 'application/x-www-form-urlencoded'
 					}).$;
 
@@ -168,31 +149,31 @@ window.$reqs = $gre({
 				$use(data).type('null').fail(function () {
 					$when(name).same({
 						'type': function () {
-							back.headers['accept'] = data;
+							back.head['accept'] = data;
 						},
 						'orig': function () {
-							back.headers['origin'] = data;
+							back.head['origin'] = data;
 						},
 						'sess': function () {
-							back.headers['cookie'] = data;
+							back.head['cookie'] = data;
 						},
 						'refs': function () {
-							back.headers['referer'] = data;
+							back.head['referer'] = data;
 						},
 						'doer': function () {
-							back.headers['user-agent'] = data;
+							back.head['user-agent'] = data;
 						},
 						'cach': function () {
-							back.headers['cache-control'] = data;
+							back.head['cache-control'] = data;
 						},
 						'lang': function () {
-							back.headers['accept-language'] = data;
+							back.head['accept-language'] = data;
 						},
 						'enco': function () {
-							back.headers['accept-encoding'] = data;
+							back.head['accept-encoding'] = data;
 						}
 					}).fail(function () {
-						back.headers[name] = data;
+						back.head[name] = data;
 					});
 				});
 			});
@@ -260,138 +241,121 @@ window.$reqs = $gre({
 
 			/* ------------------------------------------------------------------------------------------------------ */
 
-			var reqs = new XMLHttpRequest(),
-				prep = $def(function (data) {
-					var resp = func.take(data),
-						back = {
-							ride: {},
-							data: data.resp,
-							meta: {
-								path: self.$,
-								code: resp.code,
-								head: resp.head,
-								sess: resp.sess
-							}
-						};
+			var prep = $def(function (data) {
+				var resp = func.take(data),
+					back = {
+						ride: {},
+						data: data.resp,
+						meta: {
+							path: self.$,
+							code: resp.code,
+							head: resp.head,
+							sess: resp.sess
+						}
+					};
 
-					/* -------------------------------------------------------------------------------------------------- */
+				/* -------------------------------------------------------------------------------------------------- */
 
-					alert(JSON.stringify(data.head));
+				$use(vars.save).same(true).done(function () {
+					/* ---------------------------------------------------------------------------------------------- */
 
-					/* -------------------------------------------------------------------------------------------------- */
-
-					alert(JSON.stringify(resp.sess));
-
-					/* -------------------------------------------------------------------------------------------------- */
-
-					$use(vars.save).same(true).done(function () {
-						/* ---------------------------------------------------------------------------------------------- */
-
-						$use([
-							'head',
-							'sess',
-							'time',
-							'from',
-							'prox',
-							'auth',
-							'reds',
-							'save',
-							'ante',
-							'nope'
-						]).each(function (curr, name) {
-							back.ride[name] = vars[name];
-						});
-
-						/* ---------------------------------------------------------------------------------------------- */
-
-						back.ride.head = core.head;
-
-						/* ---------------------------------------------------------------------------------------------- */
-
-						back.ride.head = func.pure($use(back.ride.head).ride({refs: self.$}).$);
-
-						/* ---------------------------------------------------------------------------------------------- */
-
-						back.ride.sess = func.pure($use(core.sess).ride(back.ride.sess).ride(back.meta.sess).$);
-
-						/* ---------------------------------------------------------------------------------------------- */
+					$use([
+						'head',
+						'sess',
+						'time',
+						'from',
+						'prox',
+						'auth',
+						'reds',
+						'save',
+						'ante',
+						'nope'
+					]).each(function (curr, name) {
+						back.ride[name] = vars[name];
 					});
-
-					/* -------------------------------------------------------------------------------------------------- */
-
-					ante(back);
 
 					/* ---------------------------------------------------------------------------------------------- */
 
-					$when(resp.code).same({
-						'200|304': function () {
-							$when(core.kind).same({
-								'json': function () {
-									back.data = $json(back.data).data().$;
-								}
-							});
+					back.ride.head = core.head;
 
-							done(back);
-						},
-						'302': function () {
-							$use(vars.reds).same(true).fail(function () {
-								fail(back);
-							}).done(function () {
-								$use(resp.head).move('location').fail(function () {
-									fail(back);
-								}).done(function (data) {
-									self.$ = data;
+					/* ---------------------------------------------------------------------------------------------- */
 
-									self.ride($use(back.ride).ride({
-										type: 'gets',
-										kind: 'text',
-										data: {}
-									}).$).$act();
-								});
-							});
-						}
-					}).fail(function () {
-						fail(back);
-					});
+					back.ride.head = func.pure($use(back.ride.head).ride({refs: self.$}).$);
+
+					/* ---------------------------------------------------------------------------------------------- */
+
+					back.ride.sess = func.pure($use(core.sess).ride(back.ride.sess).ride(back.meta.sess).$);
 
 					/* ---------------------------------------------------------------------------------------------- */
 				});
 
-			reqs.onreadystatechange = function () {
-				switch (reqs.readyState) {
-					case 4:
-						prep({
-							code: reqs.status,
-							resp: reqs.responseText,
-							head: func.head_deco(reqs.getAllResponseHeaders())
+				/* -------------------------------------------------------------------------------------------------- */
+
+				ante(back);
+
+				/* ---------------------------------------------------------------------------------------------- */
+
+				$when(resp.code).same({
+					'200|304': function () {
+						$when(core.kind).same({
+							'json': function () {
+								back.data = $json(back.data).data().$;
+							}
 						});
-						break;
-				}
-			};
+
+						done(back);
+					},
+					'302': function () {
+						$use(vars.reds).same(true).fail(function () {
+							fail(back);
+						}).done(function () {
+							$use(resp.head).move('location').fail(function () {
+								fail(back);
+							}).done(function (data) {
+								self.$ = data;
+
+								self.ride($use(back.ride).ride({
+									type: 'gets',
+									kind: 'text',
+									data: {}
+								}).$).$act();
+							});
+						});
+					}
+				}).fail(function () {
+					fail(back);
+				});
+
+				/* ---------------------------------------------------------------------------------------------- */
+			});
 
 			$when(vars.type).same({
 				'gets|post': function (data) {
+					var path = self.$,
+						pass = {
+							method: opts.type,
+							headers: opts.head
+						};
+
 					$when(vars.type).same({
 						'gets': function () {
-							reqs.open('GET', self.$, true);
+							$use(opts.body).same('').fail(function () {
+								path = path + '?' + opts.body;
+							});
 						},
 						'post': function () {
-							reqs.open('POST', self.$, true);
+							pass.body = opts.body;
 						}
 					});
 
-					$use(opts.headers).each(function (name, data) {
-						reqs.setRequestHeader(name, data);
-					});
-
-					reqs.onerror = function (data) {
-						nope(data);
-					};
-
-					$use(data).same('post').fail(function () {
-						reqs.send(null);
-					}).done(function () {
-						reqs.send(opts.send);
+					window['reqs'](path, pass).then(function (resp) {
+						prep({
+							code: resp.status,
+							resp: resp.responseText,
+							head: func.head_deco(resp.getAllResponseHeaders())
+						});
+					}).catch(function (data) {
+						fail(data);
 					});
 				}
 			});

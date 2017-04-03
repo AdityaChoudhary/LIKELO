@@ -1,6 +1,6 @@
 window.$face = {};
 
-$face.vars = $gre({
+$face.main = $gre({
 	json: function () {
 		return this.is(function (self) {
 			self.$ = $json($use(self.$).turn('for \\(;;\\);', '').$).data().$

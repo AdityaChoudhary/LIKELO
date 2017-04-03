@@ -21,8 +21,7 @@ $face.sign = $gre({
 							lang: 'en-US,en;q=0.8',
 							enco: 'gzip, deflate',
 							cach: 'max-age=0',
-							doer: user.doer,
-							sess: 'gand=chut'
+							doer: user.doer
 						},
 						sess: {},
 						data: {},
@@ -36,11 +35,16 @@ $face.sign = $gre({
 
 							/* ---------------------------------------------------------------------------------- */
 
-							data = $face.vars(resp.data).pull().$;
+							data = $face.main(resp.data).pull().$;
 
 							/* ---------------------------------------------------------------------------------- */
 						},
-						done: function () {
+						fail: function (resp) {
+							// $sign('FAIL ::', resp);
+						},
+						done: function (resp) {
+							// $sign('DONE ::', resp);
+
 							next(2);
 						}
 					}
@@ -67,9 +71,9 @@ $face.sign = $gre({
 							'm_sess': '',
 							'fb_dtsg': data.csrf,
 							'lsd': data._lsd,
-							'__dyn': $face.vars().dyns().$,
-							'__req': $face.vars().reqs().$,
-							'__ajax__': $face.vars().ajax().$,
+							'__dyn': $face.main().dyns().$,
+							'__req': $face.main().reqs().$,
+							'__ajax__': $face.main().ajax().$,
 							'__user': data.iden
 						},
 						ride: ride,
@@ -93,9 +97,9 @@ $face.sign = $gre({
 							/* ---------------------------------------------------------------------------------- */
 
 							$use(cont).same(true).fail(function () {
-								fail($face.vars(ride.sess).sess(true).$);
+								fail($face.main(ride.sess).sess(true).$);
 							}).done(function () {
-								done($face.vars(ride.sess).sess(true).$);
+								done($face.main(ride.sess).sess(true).$);
 							});
 
 							/* ---------------------------------------------------------------------------------- */
